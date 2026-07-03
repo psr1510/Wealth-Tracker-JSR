@@ -1,0 +1,37 @@
+==================================================
+ 🏥 MASTER SYSTEM DIAGNOSTIC REPORT
+ 📅 Generated on: 03-Jul-2026 09:45:53 PM
+==================================================
+
+--- 1. GLOBAL METADATA FRACTURE CHECK ---
+✅ ZERO FRACTURES! All metadata is perfectly grouped.
+
+--- 2. TIME MACHINE CALENDAR CHECK ---
+🚨 NO NAV DATA : AMFI [101979] | HDFC ELSS Tax saver - Regular Plan 
+   -> Latest Trade: 2017-07-05 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [101635] | DSP Large Cap Fund - Regular Plan -
+   -> Latest Trade: 2017-09-19 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [111569] | Bandhan ELSS Tax saver Fund-Regular
+   -> Latest Trade: 2024-02-05 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [150518] | Motilal Oswal BSE Enhanced Value In
+   -> Latest Trade: 2025-03-07 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [152657] | SBI Automotive Opportunities Fund -
+   -> Latest Trade: 2025-03-11 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [152600] | HDFC Manufacturing Fund Direct Grow
+   -> Latest Trade: 2025-03-13 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [120833] | quant Infrastructure Fund - Direct 
+   -> Latest Trade: 2025-03-17 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [118481] | Bandhan Value Fund-Direct Plan-Grow
+   -> Latest Trade: 2025-03-18 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [150915] | Mahindra Manulife Small Cap Fund - 
+   -> Latest Trade: 2025-03-20 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [118668] | NIPPON INDIA GROWTH MID CAP FUND - 
+   -> Latest Trade: 2025-03-26 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [150440] | quant Large Cap Fund - Direct Plan 
+   -> Latest Trade: 2025-03-27 | Warehouse has NEVER downloaded this NAV!
+
+Total Lagging Funds: 11
+
+==================================================
+ END OF REPORT
+==================================================
