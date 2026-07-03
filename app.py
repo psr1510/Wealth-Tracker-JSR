@@ -1,162 +1,96 @@
-Microsoft Windows [Version 10.0.19045.7417]
-(c) Microsoft Corporation. All rights reserved.
+import streamlit as st
+import sqlite3
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
+import urllib.parse
+import datetime
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git add app.py
+# ==========================================
+# 0. INITIALIZATION
+# ==========================================
+if 'ui_date' not in st.session_state:
+    st.session_state.ui_date = datetime.date.today()
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git commit -m "Fix UI date crash with session state init"
-[main 416213c] Fix UI date crash with session state init
- 1 file changed, 28 insertions(+), 15 deletions(-)
+# ==========================================
+# 1. PAGE CONFIGURATION
+# ==========================================
+st.set_page_config(page_title="JSR's Wealth", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git push -u origin maingit commit -m "Fix UI date crash with session state init
-error: unknown switch `m'
-usage: git push [<options>] [<repository> [<refspec>...]]
+def inr_format(n):
+    if pd.isna(n) or n is None: return "0.00"
+    try:
+        is_neg = float(n) < 0
+        n = abs(float(n))
+        num_str = f"{n:.2f}"
+        int_part, dec_part = num_str.split('.')
+        if len(int_part) > 3:
+            last_3 = int_part[-3:]
+            remaining = int_part[:-3]
+            remaining = ','.join([remaining[max(i-2, 0):i] for i in range(len(remaining), 0, -2)][::-1])
+            int_part = remaining + ',' + last_3
+        res = f"{int_part}.{dec_part}"
+        return f"-{res}" if is_neg else res
+    except Exception:
+        return "0.00"
 
-    -v, --[no-]verbose    be more verbose
-    -q, --[no-]quiet      be more quiet
-    --[no-]repo <repository>
-                          repository
-    --[no-]all            push all branches
-    --[no-]branches       alias of --all
-    --[no-]mirror         mirror all refs
-    -d, --[no-]delete     delete refs
-    --[no-]tags           push tags (can't be used with --all or --branches or --mirror)
-    -n, --[no-]dry-run    dry run
-    --[no-]porcelain      machine-readable output
-    -f, --[no-]force      force updates
-    --[no-]force-with-lease[=<refname>:<expect>]
-                          require old value of ref to be at this value
-    --[no-]force-if-includes
-                          require remote updates to be integrated locally
-    --[no-]recurse-submodules (check|on-demand|no)
-                          control recursive pushing of submodules
-    --[no-]thin           use thin pack
-    --[no-]receive-pack <receive-pack>
-                          receive pack program
-    --[no-]exec <receive-pack>
-                          receive pack program
-    -u, --[no-]set-upstream
-                          set upstream for git pull/status
-    --[no-]progress       force progress reporting
-    --[no-]prune          prune locally removed refs
-    --no-verify           bypass pre-push hook
-    --verify              opposite of --no-verify
-    --[no-]follow-tags    push missing but relevant tags
-    --[no-]signed[=(yes|no|if-asked)]
-                          GPG sign the push
-    --[no-]atomic         request atomic transaction on remote side
-    -o, --[no-]push-option <server-specific>
-                          option to transmit
-    -4, --ipv4            use IPv4 addresses only
-    -6, --ipv6            use IPv6 addresses only
+MEMBER_SORT_ORDER = {'ASR HUF': 1, 'ASR': 2, 'LR': 3, 'PSR HUF': 4, 'PSR': 5, 'VSR': 6, 'Aarvi': 7, 'Anjaney': 8, 'VSR Gift': 9}
 
+def get_member_sort_key(name):
+    return MEMBER_SORT_ORDER.get(str(name), 99)
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git push -u origin main
-Enumerating objects: 5, done.
-Counting objects: 100% (5/5), done.
-Delta compression using up to 4 threads
-Compressing objects: 100% (3/3), done.
-Writing objects: 100% (3/3), 964 bytes | 964.00 KiB/s, done.
-Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (1/1), completed with 1 local object.
-To https://github.com/psr1510/Wealth-Tracker-JSR.git
-   966c760..416213c  main -> main
-branch 'main' set up to track 'origin/main'.
+# ==========================================
+# 2. DATA LOADER
+# ==========================================
+@st.cache_data(ttl=3600)
+def load_data():
+    conn = sqlite3.connect("WealthDatabase.db")
+    df = pd.read_sql_query("SELECT snapshot_date, name, folio, amc, asset_name, units, invested_amount, current_value, abs_return, xirr, nav FROM portfolio_snapshots ORDER BY snapshot_date ASC", conn)
+    df['snapshot_date'] = pd.to_datetime(df['snapshot_date']).dt.date
+    
+    tx_df = pd.read_excel("TransactionsLatestCAS.xlsx", sheet_name="Transactions")
+    tx_df['Date'] = pd.to_datetime(tx_df['Date']).dt.date
+    
+    try:
+        stocks_df = pd.read_sql_query("SELECT snapshot_date, entity, symbol, quantity, price, value FROM stock_snapshots ORDER BY snapshot_date ASC", conn)
+        stocks_df['snapshot_date'] = pd.to_datetime(stocks_df['snapshot_date']).dt.date
+    except:
+        stocks_df = pd.DataFrame(columns=['snapshot_date', 'entity', 'symbol', 'quantity', 'price', 'value'])
+    conn.close()
+    return df, tx_df, stocks_df
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git add app.py
+with st.spinner("Loading financial history..."):
+    df, tx_df, stocks_df = load_data()
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git commit -m "Restore full dashboard
-[main 7e1ef7a] Restore full dashboard
- 1 file changed, 129 insertions(+), 36 deletions(-)
+# Date fallbacks
+if not df.empty:
+    min_date = df['snapshot_date'].min()
+    max_date = df['snapshot_date'].max()
+else:
+    min_date = datetime.date(2017, 1, 1)
+    max_date = datetime.date.today()
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git push -u origin main
-Enumerating objects: 5, done.
-Counting objects: 100% (5/5), done.
-Delta compression using up to 4 threads
-Compressing objects: 100% (3/3), done.
-Writing objects: 100% (3/3), 2.77 KiB | 2.77 MiB/s, done.
-Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (1/1), completed with 1 local object.
-To https://github.com/psr1510/Wealth-Tracker-JSR.git
-   416213c..7e1ef7a  main -> main
-branch 'main' set up to track 'origin/main'.
+# ==========================================
+# 3. SIDEBAR & NAVIGATION
+# ==========================================
+st.sidebar.title("🧭 Navigation")
+page = st.sidebar.radio("Select a view:", ["📊 Global Dashboard", "💼 MF Portfolio Breakdown", "📈 Direct Equities", "📜 Recent MF Transactions", "🤖 Research Holdings"])
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git add app.py
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🕰️ Time Machine")
+picked_date = st.sidebar.date_input("Travel to Date:", value=st.session_state.ui_date, min_value=min_date, max_value=max_date)
+if st.sidebar.button("📅 Jump to Today"):
+    st.session_state.ui_date = max_date
+    st.rerun()
+st.session_state.ui_date = picked_date
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git commit -m "Fix date initialization crash
-[main df5032c] Fix date initialization crash
- 1 file changed, 97 insertions(+), 10 deletions(-)
+# --- DATA PROCESSING ---
+latest_df = df[df['snapshot_date'] <= st.session_state.ui_date].groupby(['name', 'folio', 'amc', 'asset_name'], as_index=False).last() if not df.empty else pd.DataFrame(columns=df.columns)
+latest_stocks_df = stocks_df[stocks_df['snapshot_date'] <= st.session_state.ui_date].groupby(['entity', 'symbol'], as_index=False).last() if not stocks_df.empty else pd.DataFrame(columns=stocks_df.columns)
 
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git push -u origin main
-Enumerating objects: 5, done.
-Counting objects: 100% (5/5), done.
-Delta compression using up to 4 threads
-Compressing objects: 100% (3/3), done.
-Writing objects: 100% (3/3), 1.88 KiB | 1.88 MiB/s, done.
-Total 3 (delta 2), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
-To https://github.com/psr1510/Wealth-Tracker-JSR.git
-   7e1ef7a..df5032c  main -> main
-branch 'main' set up to track 'origin/main'.
-
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git add WealthDatabase.db TransactionsLatestCAS.xlsx
-
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git commit -m "Upload latest data files"
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-        modified:   app.py
-
-no changes added to commit (use "git add" and/or "git commit -a")
-
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git push -u origin maingit commit -m "Upload latest data files
-error: unknown switch `m'
-usage: git push [<options>] [<repository> [<refspec>...]]
-
-    -v, --[no-]verbose    be more verbose
-    -q, --[no-]quiet      be more quiet
-    --[no-]repo <repository>
-                          repository
-    --[no-]all            push all branches
-    --[no-]branches       alias of --all
-    --[no-]mirror         mirror all refs
-    -d, --[no-]delete     delete refs
-    --[no-]tags           push tags (can't be used with --all or --branches or --mirror)
-    -n, --[no-]dry-run    dry run
-    --[no-]porcelain      machine-readable output
-    -f, --[no-]force      force updates
-    --[no-]force-with-lease[=<refname>:<expect>]
-                          require old value of ref to be at this value
-    --[no-]force-if-includes
-                          require remote updates to be integrated locally
-    --[no-]recurse-submodules (check|on-demand|no)
-                          control recursive pushing of submodules
-    --[no-]thin           use thin pack
-    --[no-]receive-pack <receive-pack>
-                          receive pack program
-    --[no-]exec <receive-pack>
-                          receive pack program
-    -u, --[no-]set-upstream
-                          set upstream for git pull/status
-    --[no-]progress       force progress reporting
-    --[no-]prune          prune locally removed refs
-    --no-verify           bypass pre-push hook
-    --verify              opposite of --no-verify
-    --[no-]follow-tags    push missing but relevant tags
-    --[no-]signed[=(yes|no|if-asked)]
-                          GPG sign the push
-    --[no-]atomic         request atomic transaction on remote side
-    -o, --[no-]push-option <server-specific>
-                          option to transmit
-    -4, --ipv4            use IPv4 addresses only
-    -6, --ipv6            use IPv6 addresses only
-
-
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>git push -u origin main
-branch 'main' set up to track 'origin/main'.
-Everything up-to-date
-
-D:\OneDrive\Documents\GitHub\Wealth-Tracker-JSR>
+# ==========================================
+# PAGE 1: GLOBAL DASHBOARD
+# ==========================================
+if page == "📊 Global Dashboard":
+    st.title("📈 JSR's Wealth Dashboard")
+    # Add your original dashboard charts/metrics here
