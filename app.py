@@ -2,32 +2,45 @@ import streamlit as st
 import pandas as pd
 import datetime
 
-# --- CRITICAL FIX: INITIALIZE SESSION STATE ---
+# --- 1. CRITICAL FIX: INITIALIZATION ---
 if 'ui_date' not in st.session_state:
     st.session_state.ui_date = datetime.date.today()
 
-# --- Load Data ---
-# Note: Ensure these files are in the same folder as app.py
-try:
-    tx_df = pd.read_excel("TransactionsLatestCAS.xlsx", sheet_name="Transactions")
-    # Add your logic for your database/warehouse here
-except Exception as e:
-    st.error(f"Data loading error: {e}")
+# --- 2. SETUP & DATA LOADING ---
+st.set_page_config(layout="wide")
+# Add your data loading logic here (e.g., pd.read_excel or sqlite3 connection)
+# tx_df = pd.read_excel("TransactionsLatestCAS.xlsx") 
 
-# --- Sidebar Logic ---
-st.sidebar.header("Navigation")
-# Define your dates
+# --- 3. SIDEBAR NAVIGATION ---
+st.sidebar.title("Navigation")
+view = st.sidebar.radio("Select a view:", ["Global Dashboard", "MF Portfolio Breakdown", "Direct Equities", "Recent MF Transactions", "Research Holdings"])
+
+# Sidebar Date Input using the fixed session state
+st.sidebar.markdown("---")
+st.sidebar.subheader("Time Machine")
 min_date = datetime.date(2017, 1, 1)
 max_date = datetime.date.today()
 
-# Now this will work because st.session_state.ui_date is guaranteed to exist
-picked_date = st.sidebar.date_input(
+st.session_state.ui_date = st.sidebar.date_input(
     "Travel to Date:", 
     value=st.session_state.ui_date, 
     min_value=min_date, 
     max_value=max_date
 )
 
-# --- Rest of your app logic ---
+# --- 4. MAIN DASHBOARD CONTENT ---
 st.title("JSR Wealth Tracker")
-st.write(f"Selected Date: {picked_date}")
+st.write(f"Viewing data for: {st.session_state.ui_date}")
+
+if view == "Global Dashboard":
+    st.header("Global Dashboard")
+    # Paste your dashboard charts/metrics here
+elif view == "MF Portfolio Breakdown":
+    st.header("MF Portfolio Breakdown")
+    # Paste your MF logic here
+elif view == "Direct Equities":
+    st.header("Direct Equities")
+elif view == "Recent MF Transactions":
+    st.header("Recent MF Transactions")
+elif view == "Research Holdings":
+    st.header("Research Holdings")
