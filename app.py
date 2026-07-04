@@ -48,7 +48,6 @@ def get_member_sort_key(name):
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_data():
-    # Absolute path explicitly for Streamlit Cloud (Linux)
     db_path = os.path.join(os.getcwd(), "WealthDatabase.db")
     conn = sqlite3.connect(db_path)
     
@@ -78,8 +77,14 @@ if not df.empty:
     min_date = df['snapshot_date'].min()
     max_date = df['snapshot_date'].max()
 else:
-    min_date = datetime.date(2017, 1, 1)
+    min_date = datetime.date(2018, 1, 1)
     max_date = datetime.date.today()
+
+# CLAMP SESSION STATE TO PREVENT CALENDAR CRASH
+if st.session_state.ui_date > max_date:
+    st.session_state.ui_date = max_date
+elif st.session_state.ui_date < min_date:
+    st.session_state.ui_date = min_date
 
 # ==========================================
 # 3. SIDEBAR NAVIGATION & TIME MACHINE
