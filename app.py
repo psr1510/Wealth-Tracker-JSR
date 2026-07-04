@@ -45,9 +45,13 @@ def get_member_sort_key(name):
 # ==========================================
 # 2. DATA LOADER (NOW WITH STOCKS)
 # ==========================================
-@st.cache_data(ttl=3600)  # Automatically clears its own memory every 1 hour
+import os
+
+@st.cache_data(ttl=3600)
 def load_data():
-    conn = sqlite3.connect("WealthDatabase.db")
+    # Use the current directory path for the database
+    db_path = os.path.join(os.getcwd(), "WealthDatabase.db")
+    conn = sqlite3.connect(db_path)
     
     # Load Mutual Funds
     df = pd.read_sql_query("SELECT snapshot_date, name, folio, amc, asset_name, units, invested_amount, current_value, abs_return, xirr, nav FROM portfolio_snapshots ORDER BY snapshot_date ASC", conn)
@@ -61,23 +65,10 @@ def load_data():
     try:
         stocks_df = pd.read_sql_query("SELECT snapshot_date, entity, symbol, quantity, price, value FROM stock_snapshots ORDER BY snapshot_date ASC", conn)
         stocks_df['snapshot_date'] = pd.to_datetime(stocks_df['snapshot_date']).dt.date
-    except Exception:
+    except:
         stocks_df = pd.DataFrame(columns=['snapshot_date', 'entity', 'symbol', 'quantity', 'price', 'value'])
-        
     conn.close()
     return df, tx_df, stocks_df
-
-with st.spinner("Loading financial history..."):
-    df, tx_df, stocks_df = load_data()
-
-# Safe Date Boundaries for Time Machine 
-if not df.empty:
-    min_date = df['snapshot_date'].min()
-    max_date = df['snapshot_date'].max()
-else:
-    min_date = datetime.date(2017, 1, 1)
-    max_date = datetime.date.today()
-
 # ==========================================
 # 3. SIDEBAR NAVIGATION & TIME MACHINE
 # ==========================================
