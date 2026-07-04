@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import urllib.parse
 import datetime
+import os
 
 # ==========================================
 # 0. CRITICAL FIX: INITIALIZE SESSION STATE
@@ -43,13 +44,11 @@ def get_member_sort_key(name):
     return MEMBER_SORT_ORDER.get(str(name), 99)
 
 # ==========================================
-# 2. DATA LOADER (NOW WITH STOCKS)
+# 2. DATA LOADER (NOW WITH ABSOLUTE PATH)
 # ==========================================
-import os
-
 @st.cache_data(ttl=3600)
 def load_data():
-    # Use the current directory path for the database
+    # Absolute path explicitly for Streamlit Cloud (Linux)
     db_path = os.path.join(os.getcwd(), "WealthDatabase.db")
     conn = sqlite3.connect(db_path)
     
@@ -65,10 +64,23 @@ def load_data():
     try:
         stocks_df = pd.read_sql_query("SELECT snapshot_date, entity, symbol, quantity, price, value FROM stock_snapshots ORDER BY snapshot_date ASC", conn)
         stocks_df['snapshot_date'] = pd.to_datetime(stocks_df['snapshot_date']).dt.date
-    except:
+    except Exception:
         stocks_df = pd.DataFrame(columns=['snapshot_date', 'entity', 'symbol', 'quantity', 'price', 'value'])
+        
     conn.close()
     return df, tx_df, stocks_df
+
+with st.spinner("Loading financial history..."):
+    df, tx_df, stocks_df = load_data()
+
+# Safe Date Boundaries for Time Machine 
+if not df.empty:
+    min_date = df['snapshot_date'].min()
+    max_date = df['snapshot_date'].max()
+else:
+    min_date = datetime.date(2017, 1, 1)
+    max_date = datetime.date.today()
+
 # ==========================================
 # 3. SIDEBAR NAVIGATION & TIME MACHINE
 # ==========================================
@@ -99,9 +111,7 @@ st.session_state.ui_date = picked_date
 # Mutual Funds
 historical_df = df[df['snapshot_date'] <= st.session_state.ui_date]
 if not historical_df.empty:
-    # Sort by date so the most recent is at the bottom
     historical_df = historical_df.sort_values('snapshot_date')
-    # Group by the exact holding and folio, grab the last known value for each fund
     latest_df = historical_df.groupby(['name', 'folio', 'amc', 'asset_name'], as_index=False).last()
     effective_date = latest_df['snapshot_date'].max()
 else:
@@ -117,23 +127,19 @@ else:
     latest_stocks_df = pd.DataFrame(columns=stocks_df.columns)
 
 # ==========================================
-# PAGE 1: GLOBAL DASHBOARD (THE GRAND UNIFICATION)
+# PAGE 1: GLOBAL DASHBOARD 
 # ==========================================
 if page == "📊 Global Dashboard":
     st.title("📈 JSR's Wealth Dashboard")
     if effective_date < max_date:
         st.warning(f"⚠️ Viewing historical portfolio state. Showing values from **{effective_date.strftime('%d %b %Y')}**.")
 
-    # Mutual Fund Totals
     total_invested_mf = latest_df['invested_amount'].sum()
     total_current_mf = latest_df['current_value'].sum()
     total_profit_mf = total_current_mf - total_invested_mf
     overall_return_mf = (total_profit_mf / total_invested_mf) * 100 if total_invested_mf > 0 else 0
     
-    # Stock Totals
     total_current_stocks = latest_stocks_df['value'].sum() if not latest_stocks_df.empty else 0
-    
-    # GRAND TOTAL
     grand_total_wealth = total_current_mf + total_current_stocks
 
     st.markdown("### 💎 Grand Total Net Worth")
@@ -152,7 +158,6 @@ if page == "📊 Global Dashboard":
         col4.metric("Weighted XIRR", "0.00 %")
         
     st.markdown("---")
-    
     st.markdown("### 📈 Direct Equities Overview")
     if not latest_stocks_df.empty:
         st.metric("Total Stock Value", f"₹ {inr_format(total_current_stocks)}")
@@ -304,7 +309,7 @@ elif page == "💼 MF Portfolio Breakdown":
                                         st.dataframe(dtx, use_container_width=True, hide_index=True)
 
 # ==========================================
-# PAGE 3: DIRECT EQUITIES (NEW)
+# PAGE 3: DIRECT EQUITIES
 # ==========================================
 elif page == "📈 Direct Equities":
     st.title("📈 Direct Equities (Stocks)")
