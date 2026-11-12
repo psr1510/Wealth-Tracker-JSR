@@ -1,14 +1,18 @@
 ==================================================
  🏥 MASTER SYSTEM DIAGNOSTIC REPORT
- 📅 Generated on: 11-Nov-2026 07:37:04 PM
+ 📅 Generated on: 12-Nov-2026 06:36:06 AM
 ==================================================
 
 --- 1. GLOBAL METADATA FRACTURE CHECK ---
 ✅ ZERO FRACTURES! All metadata is perfectly grouped.
 
 --- 2. TIME MACHINE CALENDAR CHECK ---
+🚨 NO NAV DATA : AMFI [147946] | Bandhan Small Cap Fund-Direct Plan-
+   -> Latest Trade: 2026-11-11 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [127042] | Motilal Oswal Midcap Fund - Direct 
+   -> Latest Trade: 2026-11-11 | Warehouse has NEVER downloaded this NAV!
 
-✅ ALL FUNDS UP TO DATE! The Time Machine covers all transactions.
+Total Lagging Funds: 2
 
 ==================================================
  END OF REPORT
