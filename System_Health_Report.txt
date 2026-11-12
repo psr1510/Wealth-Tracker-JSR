@@ -1,6 +1,6 @@
 ==================================================
  🏥 MASTER SYSTEM DIAGNOSTIC REPORT
- 📅 Generated on: 12-Nov-2026 06:36:06 AM
+ 📅 Generated on: 12-Nov-2026 07:35:42 PM
 ==================================================
 
 --- 1. GLOBAL METADATA FRACTURE CHECK ---
@@ -11,8 +11,10 @@
    -> Latest Trade: 2026-11-11 | Warehouse has NEVER downloaded this NAV!
 🚨 NO NAV DATA : AMFI [127042] | Motilal Oswal Midcap Fund - Direct 
    -> Latest Trade: 2026-11-11 | Warehouse has NEVER downloaded this NAV!
+🚨 NO NAV DATA : AMFI [122639] | Parag Parikh Flexi Cap Fund - Direc
+   -> Latest Trade: 2026-11-11 | Warehouse has NEVER downloaded this NAV!
 
-Total Lagging Funds: 2
+Total Lagging Funds: 3
 
 ==================================================
  END OF REPORT
